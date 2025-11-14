@@ -1,48 +1,99 @@
-"""
-Database Schemas
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+# Core domain schemas
 
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
-"""
+class Activity(BaseModel):
+    time_of_day: Literal["morning", "afternoon", "evening"]
+    title: str
+    description: Optional[str] = None
 
-from pydantic import BaseModel, Field
-from typing import Optional
+class CulturalInsight(BaseModel):
+    title: str
+    description: str
+    category: Literal["traditions", "heritage", "etiquette", "stories"]
 
-# Example schemas (replace with your own):
+class FoodRecommendation(BaseModel):
+    name: str
+    cuisine: Optional[str] = None
+    price_range: Literal["$", "$$", "$$$", "$$$$"] = "$"
+    description: Optional[str] = None
+    distance_km: Optional[float] = None
+
+class Review(BaseModel):
+    user_id: Optional[str] = None
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+class Place(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: Literal[
+        "temple", "park", "cafe", "museum", "mall", "waterfall", "food_street", "monument", "beach", "other"
+    ] = "other"
+    latitude: float
+    longitude: float
+    images: List[str] = []
+    entry_fee: Optional[float] = None
+    best_hours: Optional[str] = None
+    popularity_score: float = 0.0
+    open_now: Optional[bool] = None
+    family_friendly: Optional[bool] = None
+    activities: List[Activity] = []
+    cultural_insights: List[CulturalInsight] = []
+    food_recommendations: List[FoodRecommendation] = []
+    reviews: List[Review] = []
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    name: str
+    email: EmailStr
+    password_hash: str
+    plan: Literal["free", "premium"] = "free"
+    favorites: List[str] = []
+    provider: Literal["local", "google"] = "local"
+    is_admin: bool = False
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class AnalyticsEvent(BaseModel):
+    event_type: Literal["view", "save", "login", "search"]
+    user_id: Optional[str] = None
+    place_id: Optional[str] = None
+    metadata: Optional[dict] = None
 
-# Add your own schemas here:
-# --------------------------------------------------
+# Request/Response models
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class SignupRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = None
+    plan: Optional[Literal["free", "premium"]] = None
+
+class NearbyRequest(BaseModel):
+    latitude: float
+    longitude: float
+    radius_km: float = Field(gt=0, le=50)
+    categories: Optional[List[str]] = None
+
+class SearchRequest(BaseModel):
+    query: str
+    filters: Optional[dict] = None
+
+class OptimizeRouteRequest(BaseModel):
+    origin: List[float]  # [lat, lng]
+    mode: Literal["driving", "walking", "biking"] = "driving"
+    waypoint_ids: List[str]
+
+class BillingActivateRequest(BaseModel):
+    provider: Literal["stripe", "razorpay"]
+    token: str
